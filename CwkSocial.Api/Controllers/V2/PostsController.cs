@@ -1,9 +1,12 @@
 ﻿using CwkSocial.Domain.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CwkSocial.Api.Controllers
+namespace CwkSocial.Api.Controllers.V2
 {
-    [Route("api/[controller]")]
+    [ApiVersion("2.0")]
+
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     public class PostsController : ControllerBase
     {
@@ -14,7 +17,7 @@ namespace CwkSocial.Api.Controllers
             var post = new Post
             {
                 Id = id,
-                Text = "Hello World!"
+                Text = "Hello Universe!"
             };
 
             return Ok(post);
