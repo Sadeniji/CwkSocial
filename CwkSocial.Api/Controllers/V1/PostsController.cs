@@ -1,5 +1,4 @@
-﻿using CwkSocial.Domain.Models;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace CwkSocial.Api.Controllers.V1
 {
@@ -12,13 +11,7 @@ namespace CwkSocial.Api.Controllers.V1
         [Route("{id}")]
         public IActionResult GetById(Guid id)
         {
-            var post = new Post
-            {
-                Id = id,
-                Text = "Hello World!"
-            };
-
-            return Ok(post);
+            return Ok();
         }
     }
 }
