@@ -15,7 +15,7 @@ public class BasicInfo
         string email,
         string phone,
         DateTime dateOfBirth,
-        string curentCity)
+        string currentCity)
     {
         // TODO : implement validation, error handling strategies and error notification strategies
         return new BasicInfo
@@ -24,7 +24,7 @@ public class BasicInfo
             LastName = lastName,
             EmailAddress = email,
             Phone = phone,
-            CurrentCity = curentCity,
+            CurrentCity = currentCity,
             DateOfBirth = dateOfBirth
         };
     }
