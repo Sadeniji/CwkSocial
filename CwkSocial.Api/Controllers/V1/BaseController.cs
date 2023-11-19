@@ -9,27 +9,23 @@ public class BaseController : ControllerBase
 {
     protected IActionResult HandleErrorResponse(List<Error> errors)
     {
+        var apiError = new ErrorResponse();
         if (errors.Any(e => e.Code == ErrorCode.NotFound))
         {
             var errorMessage = errors.First(e => e.Code == ErrorCode.NotFound).Message;
 
-            var apiError = new ErrorResponse
-            {
-                StatusCode = 404,
-                StatusPhrase = "Not Found",
-                TimeStamp = DateTime.Now,
-                Errors = { errorMessage }
-            };
+            apiError.StatusCode = 404;
+            apiError.StatusPhrase = "Not Found";
+            apiError.TimeStamp = DateTime.Now;
+            apiError.Errors.Add(errorMessage);
+            
             return NotFound(apiError);
         }
-            
-        var apiError2 = new ErrorResponse
-        {
-            StatusCode = 500,
-            StatusPhrase = "Internal Server Error",
-            TimeStamp = DateTime.Now,
-            Errors = { "Unknown error" }
-        };
-        return StatusCode(500, apiError2);
+
+        apiError.StatusCode = 500;
+        apiError.StatusPhrase = "Internal Server Error";
+        apiError.TimeStamp = DateTime.Now;
+        apiError.Errors.Add("Unknown error");
+        return StatusCode(500, apiError);
     }
 }

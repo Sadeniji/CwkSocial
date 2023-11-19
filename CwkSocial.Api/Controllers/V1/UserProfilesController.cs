@@ -2,6 +2,7 @@
 using CwkSocial.Api.Contracts.Common;
 using CwkSocial.Api.Contracts.UserProfiles.Requests;
 using CwkSocial.Api.Contracts.UserProfiles.Responses;
+using CwkSocial.Api.Filters;
 using CwkSocial.Application.Enums;
 using CwkSocial.Application.UserProfiles.Commands;
 using CwkSocial.Application.UserProfiles.Queries;
@@ -30,19 +31,20 @@ public class UserProfilesController : BaseController
     {
         var query = new GetAllUserProfilesQuery();
         var response = await _mediator.Send(query);
-        var profiles = _mapper.Map<List<UserProfileResponse>>(response);
+        var profiles = _mapper.Map<List<UserProfileResponse>>(response.Payload);
         return Ok(profiles);
     }
     
     [HttpPost]
+    [ValidateModel]
     public async Task<IActionResult> CreateUserProfile([FromBody] UserProfileCreateUpdate profile)
     {
         var command = _mapper.Map<CreateUserCommand>(profile);
 
         var response = await _mediator.Send(command);
 
-        var userProfile = _mapper.Map<UserProfileResponse>(response);
-        return CreatedAtAction(nameof(GetUserProfileById), new { id = response.UserProfileId }, userProfile);
+        var userProfile = _mapper.Map<UserProfileResponse>(response.Payload);
+        return CreatedAtAction(nameof(GetUserProfileById), new { id = userProfile.UserProfileId }, userProfile);
     }
 
     [HttpGet()]
@@ -53,16 +55,17 @@ public class UserProfilesController : BaseController
 
         var response = await _mediator.Send(query);
 
-        if (response is null)
+        if (response.IsError)
         {
-            return NotFound($"No user with profile Id {id} found.");
+            return HandleErrorResponse(response.Errors);
         }
-        var userProfile = _mapper.Map<UserProfileResponse>(response);
+        var userProfile = _mapper.Map<UserProfileResponse>(response.Payload);
         return Ok(userProfile);
     }
 
     [HttpPatch]
     [Route(ApiRoutes.UserProfiles.IdRoute)]
+    [ValidateModel]
     public async Task<IActionResult> UpdateUserProfile(string id, [FromBody] UserProfileCreateUpdate updatedProfile)
     {
         var command = _mapper.Map<UpdateUserProfileCommand>(updatedProfile);
@@ -77,7 +80,8 @@ public class UserProfilesController : BaseController
     public async Task<IActionResult> DeleteUserProfile(string id)
     {
         var command = new DeleteUserProfileCommand { UserProfileId = Guid.Parse(id) };
-        await _mediator.Send(command);
-        return NoContent();
+        var response = await _mediator.Send(command);
+        
+        return response.IsError ? HandleErrorResponse(response.Errors) : NoContent();
     }
 }
