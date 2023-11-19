@@ -1,12 +1,9 @@
 ﻿using AutoMapper;
-using CwkSocial.Api.Contracts.Common;
 using CwkSocial.Api.Contracts.UserProfiles.Requests;
 using CwkSocial.Api.Contracts.UserProfiles.Responses;
 using CwkSocial.Api.Filters;
-using CwkSocial.Application.Enums;
 using CwkSocial.Application.UserProfiles.Commands;
 using CwkSocial.Application.UserProfiles.Queries;
-using CwkSocial.Domain.Aggregates.UserProfileAggregate;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -48,6 +45,7 @@ public class UserProfilesController : BaseController
     }
 
     [HttpGet()]
+    [ValidateGuid("id")]
     [Route(ApiRoutes.UserProfiles.IdRoute)]
     public async Task<IActionResult> GetUserProfileById(string id)
     {
@@ -66,6 +64,7 @@ public class UserProfilesController : BaseController
     [HttpPatch]
     [Route(ApiRoutes.UserProfiles.IdRoute)]
     [ValidateModel]
+    [ValidateGuid("id")]
     public async Task<IActionResult> UpdateUserProfile(string id, [FromBody] UserProfileCreateUpdate updatedProfile)
     {
         var command = _mapper.Map<UpdateUserProfileCommand>(updatedProfile);
@@ -77,6 +76,7 @@ public class UserProfilesController : BaseController
 
     [HttpDelete]
     [Route(ApiRoutes.UserProfiles.IdRoute)]
+    [ValidateGuid("id")]
     public async Task<IActionResult> DeleteUserProfile(string id)
     {
         var command = new DeleteUserProfileCommand { UserProfileId = Guid.Parse(id) };

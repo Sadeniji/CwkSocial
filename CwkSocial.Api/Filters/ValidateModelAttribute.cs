@@ -6,7 +6,7 @@ namespace CwkSocial.Api.Filters;
 
 public class ValidateModelAttribute : ActionFilterAttribute
 {
-    public override void OnActionExecuting(ActionExecutingContext context)
+    public override void OnResultExecuting(ResultExecutingContext context)
     {
         if (!context.ModelState.IsValid)
         {
@@ -20,10 +20,11 @@ public class ValidateModelAttribute : ActionFilterAttribute
 
             foreach (var error in errors)
             {
-                apiError.Errors.Add(error.Value.ToString());
+                apiError.Errors.Add(error.Value.Errors.First().ErrorMessage);
             }
 
-            context.Result = new JsonResult(apiError) { StatusCode = 400 };
+            context.Result = new BadRequestObjectResult(apiError);
         }
+
     }
 }
