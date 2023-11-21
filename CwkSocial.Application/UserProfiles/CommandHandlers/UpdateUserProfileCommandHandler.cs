@@ -3,6 +3,7 @@ using CwkSocial.Application.Models;
 using CwkSocial.Application.UserProfiles.Commands;
 using CwkSocial.DAL;
 using CwkSocial.Domain.Aggregates.UserProfileAggregate;
+using CwkSocial.Domain.Exceptions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,6 +48,24 @@ public class UpdateUserProfileCommandHandler : IRequestHandler<UpdateUserProfile
             result.Payload = userProfile;
             return result;
         }
+
+        catch (UserProfileNotValidException ex)
+        {
+            result.IsError = true;
+
+            ex.ValidationErrors.ForEach(e =>
+            {
+                var error = new Error
+                {
+                    Code = ErrorCode.ValidationError,
+                    Message = $"{ex.Message}"
+                };
+                result.Errors.Add(error);
+            });
+
+            return result;
+        }
+
         catch (Exception ex)
         {
             result.IsError = true;

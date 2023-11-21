@@ -1,4 +1,7 @@
-﻿namespace CwkSocial.Domain.Aggregates.UserProfileAggregate;
+﻿using CwkSocial.Domain.Exceptions;
+using CwkSocial.Domain.Validators.UserProfileValidator;
+
+namespace CwkSocial.Domain.Aggregates.UserProfileAggregate;
 
 public class BasicInfo
 {
@@ -10,6 +13,17 @@ public class BasicInfo
     public DateTime DateOfBirth { get; private set; }
     public string CurrentCity { get; private set; }
 
+    /// <summary>
+    /// Create a new BasicInfo instances
+    /// </summary>
+    /// <param name="firstName">First Name</param>
+    /// <param name="lastName">Last Name</param>
+    /// <param name="email">Email Address</param>
+    /// <param name="phone">Phone</param>
+    /// <param name="dateOfBirth">Date of Birth</param>
+    /// <param name="currentCity">Current City</param>
+    /// <returns><see cref="BasicInfo"/></returns>
+    /// <exception cref="UserProfileNotValidException"></exception>
     public static BasicInfo CreateBasicInfo(string firstName,
         string lastName,
         string email,
@@ -17,8 +31,9 @@ public class BasicInfo
         DateTime dateOfBirth,
         string currentCity)
     {
-        // TODO : implement validation, error handling strategies and error notification strategies
-        return new BasicInfo
+        var basicInfoValidator = new BasicInfoValidator();
+
+        var basicInfoToValidate = new BasicInfo
         {
             FirstName = firstName,
             LastName = lastName,
@@ -27,6 +42,20 @@ public class BasicInfo
             CurrentCity = currentCity,
             DateOfBirth = dateOfBirth
         };
+
+        var validationResult = basicInfoValidator.Validate(basicInfoToValidate);
+
+        if (validationResult.IsValid)
+            return basicInfoToValidate;
+
+        var exception = new UserProfileNotValidException("The user profile is not valid");
+
+        foreach (var error in validationResult.Errors)
+        {
+            exception.ValidationErrors.Add(error.ErrorMessage);
+        }
+
+        throw exception;
     }
 
 }

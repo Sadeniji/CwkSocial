@@ -40,7 +40,11 @@ public class UserProfilesController : BaseController
 
         var response = await _mediator.Send(command);
 
+        if (response.IsError)
+            return HandleErrorResponse(response.Errors);
+
         var userProfile = _mapper.Map<UserProfileResponse>(response.Payload);
+
         return CreatedAtAction(nameof(GetUserProfileById), new { id = userProfile.UserProfileId }, userProfile);
     }
 
