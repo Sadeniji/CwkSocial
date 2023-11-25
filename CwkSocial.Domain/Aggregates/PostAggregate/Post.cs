@@ -1,4 +1,6 @@
 ﻿using CwkSocial.Domain.Aggregates.UserProfileAggregate;
+using CwkSocial.Domain.Exceptions;
+using CwkSocial.Domain.Validators.PostValidator;
 
 namespace CwkSocial.Domain.Aggregates.PostAggregate;
 
@@ -21,18 +23,41 @@ public class Post
     // Factory method
     public static Post CreatePost(Guid userProfileId, string textContext)
     {
-        return new Post
+        var postValidator = new PostValidator();
+
+        var post = new Post
         {
             UserProfileId = userProfileId,
             TextContent = textContext,
             CreatedDate = DateTime.UtcNow,
             LastModified = DateTime.UtcNow
         };
+
+        var postValidationResult = postValidator.Validate(post);
+
+        if (postValidationResult.IsValid)
+            return post;
+
+        var postValidationException = new PostNotValidException("Post is invalid");
+        postValidationResult.Errors.ForEach(pve => postValidationException.ValidationErrors.Add(pve.ErrorMessage));
+
+        throw postValidationException;
     }
 
     // public methods
+    /// <summary>
+    /// Update the Post text
+    /// </summary>
+    /// <param name="newText">The updated post text</param>
+    /// <exception cref="PostNotValidException"></exception>
     public void UpdatePostText(string newText)
     {
+        if (string.IsNullOrWhiteSpace(newText))
+        {
+            var postValidationException = new PostNotValidException("Cannot update post. Post text is not valid.");
+            postValidationException.ValidationErrors.Add("The provided text is either null or contains only white space");
+            throw postValidationException;
+        }
         TextContent = newText;
         LastModified = DateTime.UtcNow;
     }
