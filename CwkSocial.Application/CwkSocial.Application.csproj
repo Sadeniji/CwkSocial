@@ -12,7 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Posts\QueryHandlers\" />
     <Folder Include="UserProfiles\QueryHandlers\" />
   </ItemGroup>
 

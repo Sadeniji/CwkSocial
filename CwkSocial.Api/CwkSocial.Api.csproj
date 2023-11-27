@@ -27,7 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Contracts\Posts\Responses\" />
     <Folder Include="Options\" />
   </ItemGroup>
 

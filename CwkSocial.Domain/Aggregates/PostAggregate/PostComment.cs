@@ -5,7 +5,7 @@ namespace CwkSocial.Domain.Aggregates.PostAggregate;
 
 public class PostComment
 {
-    private PostComment()
+    public PostComment()
     {
         
     }

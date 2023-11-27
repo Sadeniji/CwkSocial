@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CwkSocial.Api.Contracts.Common;
 using CwkSocial.Api.Contracts.Posts.Requests;
 using CwkSocial.Api.Contracts.Posts.Responses;
 using CwkSocial.Api.Filters;
@@ -94,5 +95,55 @@ namespace CwkSocial.Api.Controllers.V1
             
             return response.IsError ? HandleErrorResponse(response.Errors) : NoContent();
         }
+
+        [HttpGet]
+        [Route(ApiRoutes.Posts.PostComments)]
+        [ValidateGuid("postId")]
+        public async Task<IActionResult> GetCommentsByPostId(string postId)
+        {
+            var query = new GetPostCommentsCommand
+            {
+                PostId = Guid.Parse(postId)
+            };
+
+            var response = await _mediator.Send(query);
+
+            return response.IsError 
+                ? HandleErrorResponse(response.Errors) 
+                : Ok(_mapper.Map<IEnumerable<PostCommentResponse>>(response.Payload));
+        }
+
+        [HttpPost]
+        [Route(ApiRoutes.Posts.PostComments)]
+        [ValidateGuid("postId")]
+        [ValidateModel]
+        public async Task<IActionResult> AddCommentToPost(string postId, [FromBody] CreatePostComment comment)
+        {
+            var isValidUser = Guid.TryParse(comment.UserProfileId, out var userProfileId);
+
+            if (!isValidUser)
+            {
+                var apiError = new ErrorResponse
+                {
+                    StatusCode = 400,
+                    StatusPhrase = "Bad Request",
+                    TimeStamp = DateTime.Now,
+                    Errors = { "Provided user profile Id is invalid" }
+                };
+            }
+            var command = new AddPostCommentCommand
+            {
+                PostId = Guid.Parse(postId),
+                CommentText = comment.Text,
+                UserProfileId = userProfileId
+            };
+            
+            var response = await _mediator.Send(command);
+
+            return response.IsError
+                ? HandleErrorResponse(response.Errors)
+                : Ok(_mapper.Map<PostCommentResponse>(response.Payload));
+        }
+        
     }
 }
