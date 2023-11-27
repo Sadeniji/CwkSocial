@@ -35,7 +35,6 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Opera
             await _context.SaveChangesAsync(cancellationToken);
 
             result.Payload = userProfile;
-            return result;
         }
         catch (UserProfileNotValidException ex)
         {
@@ -50,8 +49,6 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Opera
                 };
                 result.Errors.Add(error);
             });
-
-            return result;
         }
         catch (Exception ex)
         {
@@ -61,8 +58,8 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Opera
                 Code = ErrorCode.UnknownError,
                 Message = ex.Message
             });
-
-            return result;
         }
+
+        return result;
     }
 }

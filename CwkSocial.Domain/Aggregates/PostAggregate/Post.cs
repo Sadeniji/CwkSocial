@@ -21,6 +21,13 @@ public class Post
     public UserProfile UserProfile { get; private set; }
 
     // Factory method
+    /// <summary>
+    /// Create new Post instance
+    /// </summary>
+    /// <param name="userProfileId">user profile Id</param>
+    /// <param name="textContext">Post content</param>
+    /// <returns><see cref="Post"/></returns>
+    /// <exception cref="PostNotValidException"></exception>
     public static Post CreatePost(Guid userProfileId, string textContext)
     {
         var postValidator = new PostValidator();

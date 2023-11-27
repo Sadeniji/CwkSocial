@@ -28,8 +28,8 @@ public class UserProfilesController : BaseController
     {
         var query = new GetAllUserProfilesQuery();
         var response = await _mediator.Send(query);
-        var profiles = _mapper.Map<List<UserProfileResponse>>(response.Payload);
-        return Ok(profiles);
+
+        return response.IsError ? HandleErrorResponse(response.Errors) : Ok(_mapper.Map<List<UserProfileResponse>>(response.Payload));
     }
     
     [HttpPost]
@@ -57,12 +57,7 @@ public class UserProfilesController : BaseController
 
         var response = await _mediator.Send(query);
 
-        if (response.IsError)
-        {
-            return HandleErrorResponse(response.Errors);
-        }
-        var userProfile = _mapper.Map<UserProfileResponse>(response.Payload);
-        return Ok(userProfile);
+        return response.IsError ? HandleErrorResponse(response.Errors) : Ok(_mapper.Map<UserProfileResponse>(response.Payload));
     }
 
     [HttpPatch]

@@ -1,17 +1,63 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using CwkSocial.Api.Contracts.Posts.Requests;
+using CwkSocial.Api.Contracts.Posts.Responses;
+using CwkSocial.Api.Filters;
+using CwkSocial.Application.Posts.Commands;
+using CwkSocial.Application.Posts.Queries;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CwkSocial.Api.Controllers.V1
 {
     [ApiVersion("1.0")]
     [Route(ApiRoutes.BaseRoute)]
     [ApiController]
-    public class PostsController : ControllerBase
+    public class PostsController : BaseController
     {
-        [HttpGet]
-        [Route(ApiRoutes.Posts.GetById)]
-        public IActionResult GetById(Guid id)
+        private readonly IMediator _mediator;
+        private readonly IMapper _mapper;
+
+        public PostsController(IMediator mediator, IMapper mapper)
         {
-            return Ok();
+            _mediator = mediator;
+            _mapper = mapper;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllPosts()
+        {
+            var result = await _mediator.Send(new GetAllPostsQuery());
+
+            return result.IsError ? HandleErrorResponse(result.Errors) : Ok(_mapper.Map<IEnumerable<PostResponse>>(result.Payload));
+        }
+        [HttpGet]
+        [Route(ApiRoutes.Posts.IdRoute)]
+        [ValidateGuid("id")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            var query = new GetPostByIdQuery() { PostId = Guid.Parse(id) };
+
+            var response = await _mediator.Send(query);
+
+            return response.IsError ? HandleErrorResponse(response.Errors) : Ok(_mapper.Map<PostResponse>(response.Payload));
+        }
+
+        [HttpPost]
+        [ValidateModel]
+        public async Task<IActionResult> CreatePost([FromBody] CreatePost post)
+        {
+            var command = new CreatePostCommand
+            {
+                UserProfileId = post.UserProfileId,
+                TextContent = post.TextContent
+            };
+
+            var response = await _mediator.Send(command);
+
+            return response.IsError
+                ? HandleErrorResponse(response.Errors)
+                : CreatedAtAction(nameof(GetById), new { id = response.Payload.UserProfileId },
+                    _mapper.Map<PostResponse>(response.Payload));
         }
     }
 }
