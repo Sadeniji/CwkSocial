@@ -59,5 +59,23 @@ namespace CwkSocial.Api.Controllers.V1
                 : CreatedAtAction(nameof(GetById), new { id = response.Payload.UserProfileId },
                     _mapper.Map<PostResponse>(response.Payload));
         }
+
+        [HttpPatch]
+        [Route(ApiRoutes.Posts.IdRoute)]
+        [ValidateGuid("id")]
+        [ValidateModel]
+        public async Task<IActionResult> UpdatePostText([FromBody] UpdatePost updatePost, string id)
+        {
+            var command = new UpdatePostCommand
+            {
+                PostId = Guid.Parse(id),
+                UserProfileId = Guid.Parse(updatePost.UserProfileId),
+                NewText = updatePost.Text
+            };
+
+            var response = await _mediator.Send(command);
+
+            return response.IsError ? HandleErrorResponse(response.Errors) : NoContent();
+        }
     }
 }
