@@ -5,6 +5,7 @@ using CwkSocial.Application.Enums;
 using CwkSocial.Application.Identity.Commands;
 using CwkSocial.Application.Models;
 using CwkSocial.Application.Options;
+using CwkSocial.Application.Services;
 using CwkSocial.DAL;
 using CwkSocial.Domain.Aggregates.UserProfileAggregate;
 using CwkSocial.Domain.Exceptions;
@@ -19,13 +20,13 @@ public class RegisterIdentityCommandHandler : IRequestHandler<RegisterIdentityCo
 {
     private readonly DataContext _dataContext;
     private readonly UserManager<IdentityUser> _userManager;
-    private readonly JwtSettings _jwtSettings;
+    private readonly IdentityService _identityService;
 
-    public RegisterIdentityCommandHandler(DataContext dataContext, UserManager<IdentityUser> userManager, IOptions<JwtSettings> jwtSettings)
+    public RegisterIdentityCommandHandler(DataContext dataContext, UserManager<IdentityUser> userManager, IdentityService identityService)
     {
         _dataContext = dataContext;
         _userManager = userManager;
-        _jwtSettings = jwtSettings.Value;
+        _identityService = identityService;
     }
 
     public async Task<OperationResult<string>> Handle(RegisterIdentityCommand request, CancellationToken cancellationToken)
@@ -96,28 +97,40 @@ public class RegisterIdentityCommandHandler : IRequestHandler<RegisterIdentityCo
                 throw;
             }
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_jwtSettings.SigningKey);
-            var tokenDescriptor = new SecurityTokenDescriptor
+            var claimsIdentity = new ClaimsIdentity(new Claim[]
             {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
-                    new Claim(JwtRegisteredClaimNames.Sub, identity.Email),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim(JwtRegisteredClaimNames.Email, identity.Email),
-                    new Claim("IdentityId", identity.Id),
-                    new Claim("UserProfileId", profile.UserProfileId.ToString())
-                }),
-                Expires = DateTime.Now.AddHours(2),
-                Audience = _jwtSettings.Audiences[0],
-                Issuer = _jwtSettings.Issuer,
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256Signature)
-            };
+                new Claim(JwtRegisteredClaimNames.Sub, identity.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, identity.Email),
+                new Claim("IdentityId", identity.Id),
+                new Claim("UserProfileId", profile.UserProfileId.ToString())
+            });
 
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            result.Payload = tokenHandler.WriteToken(token);
+            var token = _identityService.CreateSecurityToken(claimsIdentity);
+            result.Payload = _identityService.WriteToken(token);
             return result;
+            // var tokenHandler = new JwtSecurityTokenHandler();
+            // var key = Encoding.ASCII.GetBytes(_jwtSettings.SigningKey);
+            // var tokenDescriptor = new SecurityTokenDescriptor
+            // {
+            //     Subject = new ClaimsIdentity(new Claim[]
+            //     {
+            //         new Claim(JwtRegisteredClaimNames.Sub, identity.Email),
+            //         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            //         new Claim(JwtRegisteredClaimNames.Email, identity.Email),
+            //         new Claim("IdentityId", identity.Id),
+            //         new Claim("UserProfileId", profile.UserProfileId.ToString())
+            //     }),
+            //     Expires = DateTime.Now.AddHours(2),
+            //     Audience = _jwtSettings.Audiences[0],
+            //     Issuer = _jwtSettings.Issuer,
+            //     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
+            //         SecurityAlgorithms.HmacSha256Signature)
+            // };
+            //
+            // var token = tokenHandler.CreateToken(tokenDescriptor);
+            // result.Payload = tokenHandler.WriteToken(token);
+            // return result;
         }
         catch (UserProfileNotValidException ex)
         {
