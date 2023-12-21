@@ -22,6 +22,14 @@ public class BaseController : ControllerBase
             return NotFound(apiError);
         }
 
+        if (errors.Any(e => e.Code == ErrorCode.ValidationError))
+        {
+            apiError.StatusCode = 400;
+            apiError.StatusPhrase = "Bad Request";
+            apiError.TimeStamp = DateTime.Now;
+            errors.ForEach(e => apiError.Errors.Add(e.Message));
+            return StatusCode(400, apiError);
+        }
         apiError.StatusCode = 500;
         apiError.StatusPhrase = "Internal Server Error";
         apiError.TimeStamp = DateTime.Now;
