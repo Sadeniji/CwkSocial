@@ -1,17 +1,14 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using CwkSocial.Application.Enums;
 using CwkSocial.Application.Identity.Commands;
 using CwkSocial.Application.Models;
-using CwkSocial.Application.Options;
 using CwkSocial.Application.Services;
 using CwkSocial.DAL;
+using CwkSocial.Domain.Aggregates.UserProfileAggregate;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 
 namespace CwkSocial.Application.Identity.CommandHandlers
 {
@@ -34,71 +31,25 @@ namespace CwkSocial.Application.Identity.CommandHandlers
 
             try
             {
-                var identityUser = await _userManager.FindByEmailAsync(request.UserName);
+                var identityUser = await ValidateAndGetIdentityUserAsync(result, request);
 
-                if (identityUser == null)
+                if (identityUser is null)
+                {
+                    return result;
+                }
+                var userProfile = await _dataContext.UserProfiles.FirstOrDefaultAsync(up => up.IdentityId == identityUser.Id, cancellationToken);
+                if (userProfile is null)
                 {
                     result.IsError = true;
                     result.Errors.Add(new Error
                     {
-                        Code = ErrorCode.IdentityUserDoesNotExist,
-                        Message = $"Login failed. Provided username is incorrect - {request.UserName}."
+                        Code = ErrorCode.InExistenceUserProfile,
+                        Message = $"Login failed. User profile does not exist - {request.UserName}."
                     });
-
                     return result;
                 }
-
-                var isAValidPassword = await _userManager.CheckPasswordAsync(identityUser, request.Password);
-
-                if (!isAValidPassword)
-                {
-                    result.IsError = true;
-                    result.Errors.Add(new Error
-                    {
-                        Code = ErrorCode.IncorrectPassword,
-                        Message = "Login failed. Provided password is incorrect."
-                    });
-
-                    return result;
-                }
-
-                var userProfile = await _dataContext.UserProfiles
-                    .FirstOrDefaultAsync(up => up.IdentityId == identityUser.Id, cancellationToken);
-
-                var claimsIdentity = new ClaimsIdentity(new Claim[]
-                {
-                    new Claim(JwtRegisteredClaimNames.Sub, identityUser.Email),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim(JwtRegisteredClaimNames.Email, identityUser.Email),
-                    new Claim("IdentityId", identityUser.Id),
-                    new Claim("UserProfileId", userProfile.UserProfileId.ToString())
-                });
-
-                var token = _identityService.CreateSecurityToken(claimsIdentity);
-                result.Payload = _identityService.WriteToken(token);
+                result.Payload = GetJwtString(identityUser, userProfile);
                 return result;
-                // var tokenHandler = new JwtSecurityTokenHandler();
-                // var key = Encoding.ASCII.GetBytes(_jwtSettings.SigningKey);
-                // var tokenDescriptor = new SecurityTokenDescriptor
-                // {
-                //     Subject = new ClaimsIdentity(new Claim[]
-                //     {
-                //         new Claim(JwtRegisteredClaimNames.Sub, identityUser.Email),
-                //         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                //         new Claim(JwtRegisteredClaimNames.Email, identityUser.Email),
-                //         new Claim("IdentityId", identityUser.Id),
-                //         new Claim("UserProfileId", userProfile.UserProfileId.ToString())
-                //     }),
-                //     Expires = DateTime.Now.AddHours(2),
-                //     Audience = _jwtSettings.Audiences[0],
-                //     Issuer = _jwtSettings.Issuer,
-                //     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
-                //         SecurityAlgorithms.HmacSha256Signature)
-                // };
-                //
-                // var token = tokenHandler.CreateToken(tokenDescriptor);
-                // result.Payload = tokenHandler.WriteToken(token);
-                // return result;
             } 
             catch (Exception ex)
             {
@@ -110,6 +61,55 @@ namespace CwkSocial.Application.Identity.CommandHandlers
                 });
                 return result;
             }
+        }
+
+        private string GetJwtString(IdentityUser identityUser, UserProfile userProfile)
+        {
+            var claimsIdentity = new ClaimsIdentity(new Claim[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, identityUser.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, identityUser.Email),
+                new Claim("IdentityId", identityUser.Id),
+                new Claim("UserProfileId", userProfile.UserProfileId.ToString())
+            });
+
+            var token = _identityService.CreateSecurityToken(claimsIdentity);
+            return _identityService.WriteToken(token);
+        }
+
+        private async Task<IdentityUser?> ValidateAndGetIdentityUserAsync(OperationResult<string> result, 
+            LoginCommand request)
+        {
+            var identityUser = await _userManager.FindByEmailAsync(request.UserName);
+
+            if (identityUser == null)
+            {
+                result.IsError = true;
+                result.Errors.Add(new Error
+                {
+                    Code = ErrorCode.IdentityUserDoesNotExist,
+                    Message = $"Login failed. Provided username is incorrect - {request.UserName}."
+                });
+
+                return null;
+            }
+
+            var isAValidPassword = await _userManager.CheckPasswordAsync(identityUser, request.Password);
+
+            if (!isAValidPassword)
+            {
+                result.IsError = true;
+                result.Errors.Add(new Error
+                {
+                    Code = ErrorCode.IncorrectPassword,
+                    Message = "Login failed. Provided password is incorrect."
+                });
+
+                return null;
+            }
+
+            return identityUser;
         }
     }
 }
