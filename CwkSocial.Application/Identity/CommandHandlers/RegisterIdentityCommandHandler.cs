@@ -52,40 +52,8 @@ public class RegisterIdentityCommandHandler : IRequestHandler<RegisterIdentityCo
             var profile = await CreateUserProfileAsync(result, request, transaction, identity, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             
-            var claimsIdentity = new ClaimsIdentity(new Claim[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, identity.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, identity.Email),
-                new Claim("IdentityId", identity.Id),
-                new Claim("UserProfileId", profile.UserProfileId.ToString())
-            });
-
-            var token = _identityService.CreateSecurityToken(claimsIdentity);
-            result.Payload = _identityService.WriteToken(token);
+            result.Payload = GetJwtString(identity, profile);;
             return result;
-            // var tokenHandler = new JwtSecurityTokenHandler();
-            // var key = Encoding.ASCII.GetBytes(_jwtSettings.SigningKey);
-            // var tokenDescriptor = new SecurityTokenDescriptor
-            // {
-            //     Subject = new ClaimsIdentity(new Claim[]
-            //     {
-            //         new Claim(JwtRegisteredClaimNames.Sub, identity.Email),
-            //         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            //         new Claim(JwtRegisteredClaimNames.Email, identity.Email),
-            //         new Claim("IdentityId", identity.Id),
-            //         new Claim("UserProfileId", profile.UserProfileId.ToString())
-            //     }),
-            //     Expires = DateTime.Now.AddHours(2),
-            //     Audience = _jwtSettings.Audiences[0],
-            //     Issuer = _jwtSettings.Issuer,
-            //     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
-            //         SecurityAlgorithms.HmacSha256Signature)
-            // };
-            //
-            // var token = tokenHandler.CreateToken(tokenDescriptor);
-            // result.Payload = tokenHandler.WriteToken(token);
-            // return result;
         }
         catch (UserProfileNotValidException ex)
         {
@@ -183,5 +151,20 @@ public class RegisterIdentityCommandHandler : IRequestHandler<RegisterIdentityCo
             await transaction.RollbackAsync(cancellationToken);
             throw;
         }
+    }
+
+    private string GetJwtString(IdentityUser identity, UserProfile profile)
+    {
+        var claimsIdentity = new ClaimsIdentity(new Claim[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, identity.Email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, identity.Email),
+            new Claim("IdentityId", identity.Id),
+            new Claim("UserProfileId", profile.UserProfileId.ToString())
+        });
+
+        var token = _identityService.CreateSecurityToken(claimsIdentity);
+        return _identityService.WriteToken(token);
     }
 }
