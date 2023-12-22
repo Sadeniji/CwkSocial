@@ -33,7 +33,7 @@ public class DeleteUserProfileCommandHandler : IRequestHandler<DeleteUserProfile
             });
             return result;
         }
-
+        
         _context.UserProfiles.Remove(userProfile);
         await _context.SaveChangesAsync(cancellationToken);
         result.Payload = userProfile;

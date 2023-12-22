@@ -35,21 +35,23 @@ public class UserProfilesController : BaseController
         return response.IsError ? HandleErrorResponse(response.Errors) : Ok(_mapper.Map<List<UserProfileResponse>>(response.Payload));
     }
     
-    [HttpPost]
-    [ValidateModel]
-    public async Task<IActionResult> CreateUserProfile([FromBody] UserProfileCreateUpdate profile, CancellationToken cancellationToken)
-    {
-        var command = _mapper.Map<CreateUserCommand>(profile);
-
-        var response = await _mediator.Send(command, cancellationToken);
-
-        if (response.IsError)
-            return HandleErrorResponse(response.Errors);
-
-        var userProfile = _mapper.Map<UserProfileResponse>(response.Payload);
-
-        return CreatedAtAction(nameof(GetUserProfileById), new { id = userProfile.UserProfileId }, userProfile);
-    }
+    // This is now included in Registering user identity
+    // [HttpPost]
+    // [ValidateModel]
+    // public async Task<IActionResult> CreateUserProfile([FromBody] UserProfileCreateUpdate profile, CancellationToken cancellationToken)
+    // {
+    //     var command = _mapper.Map<CreateUserCommand>(profile);
+    //
+    //     var response = await _mediator.Send(command, cancellationToken);
+    //
+    //     if (response.IsError)
+    //     {
+    //         return HandleErrorResponse(response.Errors);
+    //     }
+    //     var userProfile = _mapper.Map<UserProfileResponse>(response.Payload);
+    //
+    //     return CreatedAtAction(nameof(GetUserProfileById), new { id = userProfile.UserProfileId }, userProfile);
+    // }
 
     [HttpGet]
     [ValidateGuid("id")]

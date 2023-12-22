@@ -1,11 +1,15 @@
-﻿using AutoMapper;
+﻿using System.Security.Claims;
+using AutoMapper;
 using CwkSocial.Api.Contracts.Common;
 using CwkSocial.Api.Contracts.Posts.Requests;
 using CwkSocial.Api.Contracts.Posts.Responses;
+using CwkSocial.Api.Extensions;
 using CwkSocial.Api.Filters;
 using CwkSocial.Application.Posts.Commands;
 using CwkSocial.Application.Posts.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CwkSocial.Api.Controllers.V1
@@ -13,6 +17,7 @@ namespace CwkSocial.Api.Controllers.V1
     [ApiVersion("1.0")]
     [Route(ApiRoutes.BaseRoute)]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class PostsController : BaseController
     {
         private readonly IMediator _mediator;
@@ -25,35 +30,37 @@ namespace CwkSocial.Api.Controllers.V1
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllPosts()
+        public async Task<IActionResult> GetAllPosts(CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(new GetAllPostsQuery());
+            var result = await _mediator.Send(new GetAllPostsQuery(), cancellationToken);
 
             return result.IsError ? HandleErrorResponse(result.Errors) : Ok(_mapper.Map<IEnumerable<PostResponse>>(result.Payload));
         }
         [HttpGet]
         [Route(ApiRoutes.Posts.IdRoute)]
         [ValidateGuid("id")]
-        public async Task<IActionResult> GetById(string id)
+        public async Task<IActionResult> GetById(string id, CancellationToken cancellationToken)
         {
             var query = new GetPostByIdQuery() { PostId = Guid.Parse(id) };
 
-            var response = await _mediator.Send(query);
+            var response = await _mediator.Send(query, cancellationToken);
 
             return response.IsError ? HandleErrorResponse(response.Errors) : Ok(_mapper.Map<PostResponse>(response.Payload));
         }
 
         [HttpPost]
         [ValidateModel]
-        public async Task<IActionResult> CreatePost([FromBody] CreatePost post)
+        public async Task<IActionResult> CreatePost([FromBody] CreatePost post, CancellationToken cancellationToken)
         {
+            var userProfileId = HttpContext.GetUserProfileIdClaimValue();
+            
             var command = new CreatePostCommand
             {
-                UserProfileId = post.UserProfileId,
-                TextContent = post.TextContent
+                UserProfileId = userProfileId,
+                TextContent = post.Text
             };
 
-            var response = await _mediator.Send(command);
+            var response = await _mediator.Send(command, cancellationToken);
 
             return response.IsError
                 ? HandleErrorResponse(response.Errors)
@@ -65,17 +72,18 @@ namespace CwkSocial.Api.Controllers.V1
         [Route(ApiRoutes.Posts.IdRoute)]
         [ValidateGuid("id")]
         [ValidateModel]
-        public async Task<IActionResult> UpdatePostText([FromBody] UpdatePost updatePost, string id)
+        public async Task<IActionResult> UpdatePostText([FromBody] UpdatePost updatePost, string id, CancellationToken cancellationToken)
         {
+            var userProfileId = HttpContext.GetUserProfileIdClaimValue();
+
             var command = new UpdatePostCommand
             {
                 PostId = Guid.Parse(id),
-                UserProfileId = Guid.Parse(updatePost.UserProfileId),
+                UserProfileId = userProfileId,
                 NewText = updatePost.Text
             };
 
-            var response = await _mediator.Send(command);
-
+            var response = await _mediator.Send(command, cancellationToken);
             return response.IsError ? HandleErrorResponse(response.Errors) : NoContent();
         }
 
@@ -83,15 +91,17 @@ namespace CwkSocial.Api.Controllers.V1
         [Route(ApiRoutes.Posts.IdRoute)]
         [ValidateGuid("id")]
         [ValidateGuid("profileId")]
-        public async Task<IActionResult> DeletePost(string id, string profileId)
+        public async Task<IActionResult> DeletePost(string id, string profileId, CancellationToken cancellationToken)
         {
+            var userProfileId = HttpContext.GetUserProfileIdClaimValue();
+            
             var command = new DeletePostCommand
             {
                 PostId = Guid.Parse(id),
-                UserProfileId = Guid.Parse(profileId)
+                UserProfileId = userProfileId
             };
 
-            var response = await _mediator.Send(command);
+            var response = await _mediator.Send(command, cancellationToken);
             
             return response.IsError ? HandleErrorResponse(response.Errors) : NoContent();
         }
@@ -99,14 +109,14 @@ namespace CwkSocial.Api.Controllers.V1
         [HttpGet]
         [Route(ApiRoutes.Posts.PostComments)]
         [ValidateGuid("postId")]
-        public async Task<IActionResult> GetCommentsByPostId(string postId)
+        public async Task<IActionResult> GetCommentsByPostId(string postId, CancellationToken cancellationToken)
         {
             var query = new GetPostCommentsCommand
             {
                 PostId = Guid.Parse(postId)
             };
 
-            var response = await _mediator.Send(query);
+            var response = await _mediator.Send(query, cancellationToken);
 
             return response.IsError 
                 ? HandleErrorResponse(response.Errors) 
@@ -117,7 +127,7 @@ namespace CwkSocial.Api.Controllers.V1
         [Route(ApiRoutes.Posts.PostComments)]
         [ValidateGuid("postId")]
         [ValidateModel]
-        public async Task<IActionResult> AddCommentToPost(string postId, [FromBody] CreatePostComment comment)
+        public async Task<IActionResult> AddCommentToPost(string postId, [FromBody] CreatePostComment comment, CancellationToken cancellationToken)
         {
             var isValidUser = Guid.TryParse(comment.UserProfileId, out var userProfileId);
 
@@ -130,6 +140,8 @@ namespace CwkSocial.Api.Controllers.V1
                     TimeStamp = DateTime.Now,
                     Errors = { "Provided user profile Id is invalid" }
                 };
+
+                return BadRequest(apiError);
             }
             var command = new AddPostCommentCommand
             {
@@ -138,7 +150,7 @@ namespace CwkSocial.Api.Controllers.V1
                 UserProfileId = userProfileId
             };
             
-            var response = await _mediator.Send(command);
+            var response = await _mediator.Send(command, cancellationToken);
 
             return response.IsError
                 ? HandleErrorResponse(response.Errors)

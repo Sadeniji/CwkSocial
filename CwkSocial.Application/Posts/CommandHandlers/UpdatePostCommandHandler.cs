@@ -37,7 +37,7 @@ public class UpdatePostCommandHandler : IRequestHandler<UpdatePostCommand, Opera
                 });
                 return result;
             }
-            
+
             post.UpdatePostText(request.NewText);
             await _dataContext.SaveChangesAsync(cancellationToken);
             result.Payload = post;
