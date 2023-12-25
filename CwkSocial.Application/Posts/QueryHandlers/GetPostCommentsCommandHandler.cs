@@ -30,16 +30,12 @@ public class GetPostCommentsCommandHandler : IRequestHandler<GetPostCommentsComm
                 return result;
             
             result.Payload = post.Comments;
+            return result;
         }
         catch (Exception ex)
         {
-            result.IsError = true;
-            result.Errors.Add(new Error
-            {
-                Code = ErrorCode.UnknownError,
-                Message = ex.Message
-            });
+            result.AddUnKnowError(ex.Message);
+            return result;
         }
-        return result;
     }
 }

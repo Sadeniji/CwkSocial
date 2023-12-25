@@ -1,7 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using CwkSocial.Application.Services;
-using Microsoft.IdentityModel.Tokens;
+﻿using CwkSocial.Application.Services;
 
 namespace CwkSocial.Api.Registrars;
 

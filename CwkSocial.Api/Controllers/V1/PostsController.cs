@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using AutoMapper;
+﻿using AutoMapper;
 using CwkSocial.Api.Contracts.Common;
 using CwkSocial.Api.Contracts.Posts.Requests;
 using CwkSocial.Api.Contracts.Posts.Responses;

@@ -3,7 +3,6 @@ using CwkSocial.Application.Models;
 using CwkSocial.Application.Posts.Queries;
 using CwkSocial.DAL;
 using CwkSocial.Domain.Aggregates.PostAggregate;
-using CwkSocial.Domain.Aggregates.UserProfileAggregate;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,27 +26,17 @@ public class GetPostByIdQueryHandler : IRequestHandler<GetPostByIdQuery, Operati
 
             if (post is null)
             {
-                result.IsError = true;
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.NotFound,
-                    Message = $"No Post found for PostId - {request.PostId}"
-                });
+                result.AddError(ErrorCode.NotFound, PostErrorMessage.PostNotFound);
                 return result;
             }
-
+            
             result.Payload = post;
             return result;
         }
         catch (Exception ex)
         {
-            result.IsError = true;
-            result.Errors.Add(new Error
-            {
-                Code = ErrorCode.UnknownError,
-                Message = ex.Message
-            });
+            result.AddUnKnowError(ex.Message);
+            return result;
         }
-        return result;
     }
 }

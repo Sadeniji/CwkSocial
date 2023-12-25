@@ -25,12 +25,7 @@ public class GetUserProfileByIdQueryHandler : IRequestHandler<GetUserProfileById
         
         if (userProfile is null)
         {
-            result.IsError = true;
-            result.Errors.Add(new Error
-            {
-                Code = ErrorCode.NotFound,
-                Message = $"No UserProfile found for userProfileId - {request.UserProfileId}"
-            });
+            result.AddError(ErrorCode.NotFound, string.Format(UserProfileErrorMessage.NoUserProfileFound, request.UserProfileId));
             return result;
         }
 

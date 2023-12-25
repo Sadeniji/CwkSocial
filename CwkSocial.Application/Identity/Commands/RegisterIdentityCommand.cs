@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using CwkSocial.Application.Models;
+﻿using CwkSocial.Application.Models;
 using MediatR;
 
 namespace CwkSocial.Application.Identity.Commands;

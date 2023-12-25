@@ -28,12 +28,7 @@ public class DeletePostCommandHandler : IRequestHandler<DeletePostCommand, Opera
             
             if (post is null)
             {
-                result.IsError = true;
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.NotFound,
-                    Message = $"No Post found for PostId - {request.PostId} with UserProfileId - {request.UserProfileId}"
-                });
+                result.AddError(ErrorCode.NotFound, string.Format(PostErrorMessage.PostNotFound, request.PostId));
                 return result;
             }
             
@@ -44,12 +39,7 @@ public class DeletePostCommandHandler : IRequestHandler<DeletePostCommand, Opera
         }
         catch (Exception ex)
         {
-            result.IsError = true;
-            result.Errors.Add(new Error
-            {
-                Code = ErrorCode.UnknownError,
-                Message = ex.Message
-            });
+            result.AddError(ErrorCode.UnknownError, ex.Message);
             return result;
         }
     }

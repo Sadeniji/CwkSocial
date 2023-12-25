@@ -24,16 +24,11 @@ public class AddPostCommentCommandHandler :  IRequestHandler<AddPostCommentComma
 
         try
         {
-            var post = await _dataContext.Posts.FirstOrDefaultAsync(p => p.PostId == request.PostId, cancellationToken);
+            var post = await _dataContext.Posts.FirstOrDefaultAsync(p => p.PostId == request.PostId && p.UserProfileId == request.UserProfileId, cancellationToken);
             
             if (post is null)
             {
-                result.IsError = true;
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.NotFound,
-                    Message = $"No Post found for PostId - {request.PostId} with UserProfileId - {request.UserProfileId}"
-                });
+                result.AddError(ErrorCode.NotFound, string.Format(PostErrorMessage.PostNotFound, request.PostId));
                 return result;
             }
 
@@ -47,24 +42,11 @@ public class AddPostCommentCommandHandler :  IRequestHandler<AddPostCommentComma
         }
         catch (PostCommentNotValidException ex)
         {
-            result.IsError = true;
-            ex.ValidationErrors.ForEach(e =>
-            {
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.ValidationError,
-                    Message = ex.Message
-                });
-            });
+            ex.ValidationErrors.ForEach(e => result.AddError(ErrorCode.ValidationError, e));
         }
         catch (Exception ex)
         {
-            result.IsError = true;
-            result.Errors.Add(new Error
-            {
-                Code = ErrorCode.UnknownError,
-                Message = ex.Message
-            });
+            result.AddError(ErrorCode.UnknownError, ex.Message);
         }
 
         return result;

@@ -29,12 +29,7 @@ public class CreatePostCommandHandler : IRequestHandler<CreatePostCommand, Opera
             
             if (!userProfileExist)
             {
-                result.IsError = true;
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.NotFound,
-                    Message = $"No UserProfile found for userProfileId - {command.UserProfileId}"
-                });
+                result.AddError(ErrorCode.NotFound, string.Format(PostErrorMessage.UserProfileNotFound, command.UserProfileId));
                 return result;
             }
             var post = Post.CreatePost(command.UserProfileId, command.TextContent);
@@ -44,24 +39,14 @@ public class CreatePostCommandHandler : IRequestHandler<CreatePostCommand, Opera
         }
         catch (PostNotValidException ex)
         {
-            result.IsError = true;
             ex.ValidationErrors.ForEach(e =>
             {
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.ValidationError,
-                    Message = ex.Message
-                });
+                result.AddError(ErrorCode.ValidationError, e);
             });
         }
         catch (Exception ex)
         {
-            result.IsError = true;
-            result.Errors.Add(new Error
-            {
-                Code = ErrorCode.UnknownError,
-                Message = ex.Message
-            });
+            result.AddError(ErrorCode.UnknownError, ex.Message);
         }
         return result;
     }

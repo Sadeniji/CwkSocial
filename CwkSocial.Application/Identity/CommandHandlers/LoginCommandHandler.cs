@@ -40,12 +40,7 @@ namespace CwkSocial.Application.Identity.CommandHandlers
                 var userProfile = await _dataContext.UserProfiles.FirstOrDefaultAsync(up => up.IdentityId == identityUser.Id, cancellationToken);
                 if (userProfile is null)
                 {
-                    result.IsError = true;
-                    result.Errors.Add(new Error
-                    {
-                        Code = ErrorCode.InExistenceUserProfile,
-                        Message = $"Login failed. User profile does not exist - {request.UserName}."
-                    });
+                    result.AddError(ErrorCode.InExistenceUserProfile,  $"Login failed. User profile does not exist - {request.UserName}.");
                     return result;
                 }
                 result.Payload = GetJwtString(identityUser, userProfile);
@@ -53,12 +48,7 @@ namespace CwkSocial.Application.Identity.CommandHandlers
             } 
             catch (Exception ex)
             {
-                result.IsError = true;
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.UnknownError,
-                    Message = ex.Message
-                });
+                result.AddError(ErrorCode.UnknownError, ex.Message);
                 return result;
             }
         }
@@ -85,13 +75,7 @@ namespace CwkSocial.Application.Identity.CommandHandlers
 
             if (identityUser == null)
             {
-                result.IsError = true;
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.IdentityUserDoesNotExist,
-                    Message = $"Login failed. Provided username is incorrect - {request.UserName}."
-                });
-
+                result.AddError(ErrorCode.IdentityUserDoesNotExist, IdentityErrorMessage.NonExistenceIdentityUser);
                 return null;
             }
 
@@ -99,13 +83,7 @@ namespace CwkSocial.Application.Identity.CommandHandlers
 
             if (!isAValidPassword)
             {
-                result.IsError = true;
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.IncorrectPassword,
-                    Message = "Login failed. Provided password is incorrect."
-                });
-
+                result.AddError(ErrorCode.IncorrectPassword, IdentityErrorMessage.InCorrectPassword);
                 return null;
             }
 

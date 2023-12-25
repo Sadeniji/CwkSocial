@@ -26,12 +26,7 @@ public class GetAllPostsQueryHandler : IRequestHandler<GetAllPostsQuery, Operati
         }
         catch (Exception ex)
         {
-            result.IsError = true;
-            result.Errors.Add(new Error
-            {
-                Code = ErrorCode.UnknownError,
-                Message = ex.Message
-            });
+            result.AddError(ErrorCode.UnknownError, ex.Message);
         }
         return result;
     }

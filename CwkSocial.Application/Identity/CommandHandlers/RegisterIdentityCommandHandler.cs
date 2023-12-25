@@ -57,24 +57,11 @@ public class RegisterIdentityCommandHandler : IRequestHandler<RegisterIdentityCo
         }
         catch (UserProfileNotValidException ex)
         {
-            result.IsError = true;
-            ex.ValidationErrors.ForEach(e =>
-            {
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.ValidationError,
-                    Message = e
-                });
-            });
+            ex.ValidationErrors.ForEach(e => result.AddError(ErrorCode.ValidationError, e));
         }
         catch (Exception ex)
         {
-            result.IsError = true;
-            result.Errors.Add(new Error
-            {
-                Code = ErrorCode.UnknownError,
-                Message = ex.Message
-            });
+            result.AddError(ErrorCode.UnknownError, ex.Message);
         }
 
         return result;
@@ -86,13 +73,7 @@ public class RegisterIdentityCommandHandler : IRequestHandler<RegisterIdentityCo
 
         if (existingIdentity != null)
         {
-            result.IsError = true;
-            result.Errors.Add(new Error
-            {
-                Code = ErrorCode.IdentityUserAlreadyExists,
-                Message = "Provided email address already exists. Cannot register new user"
-            });
-
+            result.AddError(ErrorCode.IdentityUserAlreadyExists, IdentityErrorMessage.IdentityUserAlreadyExist);
             return false;
         }
         return true;
@@ -112,18 +93,13 @@ public class RegisterIdentityCommandHandler : IRequestHandler<RegisterIdentityCo
         if (!createdIdentity.Succeeded)
         {
             await transaction.RollbackAsync(cancellationToken);
-            result.IsError = true;
+            
             foreach (var identityError in createdIdentity.Errors)
             {
-                result.Errors.Add(new Error
-                {
-                    Code = ErrorCode.IdentityCreationFailed,
-                    Message = $"Unable to create new identity - {identityError.Description}"
-                });
+                result.AddError(ErrorCode.IdentityCreationFailed, identityError.Description);
             }
             return null;
         }
-        
         return identity;
     }
 
