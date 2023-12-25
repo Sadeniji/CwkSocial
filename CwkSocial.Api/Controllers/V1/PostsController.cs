@@ -155,6 +155,47 @@ namespace CwkSocial.Api.Controllers.V1
                 ? HandleErrorResponse(response.Errors)
                 : Ok(_mapper.Map<PostCommentResponse>(response.Payload));
         }
+
+        [HttpGet]
+        [Route(ApiRoutes.Posts.PostInteractions)]
+        [ValidateGuid("postId")]
+        public async Task<IActionResult> GetPostInteractions(string postId, CancellationToken cancellationToken)
+        {
+            var postIdInGuid = Guid.Parse(postId);
+
+            var query = new GetPostInteractionsQuery
+            {
+                PostId = postIdInGuid
+            };
+            
+            var response = await _mediator.Send(query, cancellationToken);
+            
+            return response.IsError 
+                ? HandleErrorResponse(response.Errors) 
+                : Ok(_mapper.Map<IEnumerable<PostInteractionResponse>>(response.Payload));
+        }
         
+        [HttpPost]
+        [Route(ApiRoutes.Posts.PostInteractions)]
+        [ValidateGuid("postId")]
+        [ValidateModel]
+        public async Task<IActionResult> AddPostInteraction(string postId, [FromBody] PostInteractionCreate interaction, CancellationToken cancellationToken)
+        {
+            var postIdInGuid = Guid.Parse(postId);
+            var userProfileId = HttpContext.GetUserProfileIdClaimValue();
+            
+            var command = new CreatePostInteractionCommand
+            {
+                PostId = postIdInGuid,
+                UserProfileId = userProfileId,
+                InteractionType = interaction.InteractionType
+            };
+            
+            var result = await _mediator.Send(command, cancellationToken);
+
+            return result.IsError
+                ? HandleErrorResponse(result.Errors)
+                : Ok(_mapper.Map<PostInteractionResponse>(result.Payload));
+        }
     }
 }

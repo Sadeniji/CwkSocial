@@ -14,6 +14,8 @@ public class ApiRoutes
         public const string IdRoute = "{id}";
         public const string PostComments = "{postId}/comments";
         public const string CommentById = "{postId}/comments/{commetId}";
+        public const string InteractionById = "{postId}/interactions/{interactionId}";
+        public const string PostInteractions = "{postId}/interactions";
     }
 
     public static class Identity
