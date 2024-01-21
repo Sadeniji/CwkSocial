@@ -86,6 +86,6 @@ public class Post
     
     public void RemoveInteraction(PostInteraction interactionToRemove)
     {
-        _interactions.Remove(interactionToRemove);
+        _interactions.Remove(interactionToRemove);  
     }
 }
