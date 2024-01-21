@@ -24,14 +24,14 @@ public class AddPostCommentCommandHandler :  IRequestHandler<AddPostCommentComma
 
         try
         {
-            var post = await _dataContext.Posts.FirstOrDefaultAsync(p => p.PostId == request.PostId && p.UserProfileId == request.UserProfileId, cancellationToken);
+            var post = await _dataContext.Posts.FirstOrDefaultAsync(p => p.PostId == request.PostId, cancellationToken);
             
             if (post is null)
             {
                 result.AddError(ErrorCode.NotFound, string.Format(PostErrorMessage.PostNotFound, request.PostId));
                 return result;
             }
-
+            
             var comment = PostComment.CreatePostComment(request.PostId, request.CommentText, request.UserProfileId);
             
             post.AddPostComment(comment);

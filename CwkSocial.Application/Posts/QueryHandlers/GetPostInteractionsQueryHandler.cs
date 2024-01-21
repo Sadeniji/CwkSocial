@@ -23,11 +23,11 @@ public class GetPostInteractionsQueryHandler : IRequestHandler<GetPostInteractio
 
         try
         {
-            var interactions = await _dataContext.Posts
-                .Where(p => p.PostId == request.PostId)
-                .Include(p => p.Interactions)
-                .Include(p => p.UserProfile)
-                .SelectMany(p => p.Interactions).ToListAsync(cancellationToken);
+            // var interactions = await _dataContext.Posts
+            //     .Where(p => p.PostId == request.PostId)
+            //     .Include(p => p.Interactions)
+            //     .Include(p => p.UserProfile)
+            //     .SelectMany(p => p.Interactions).ToListAsync(cancellationToken);
             
             var post = await _dataContext.Posts
                 .Include(p => p.Interactions)
@@ -40,8 +40,25 @@ public class GetPostInteractionsQueryHandler : IRequestHandler<GetPostInteractio
                 return result;
             }
 
+            var userIds = post.Interactions.Where(x => x.UserProfile == null && x.UserProfileId != null).
+                Select(p => p.UserProfileId).ToList();
+
+            if (userIds.Any())
+            {
+                var userProfiles = await _dataContext.UserProfiles
+                    .Where(u => userIds.Contains(u.UserProfileId))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var interaction in post.Interactions)
+                {
+                    interaction.UserProfile = interaction.UserProfile == null
+                        ? userProfiles.FirstOrDefault(up => up.UserProfileId == interaction.UserProfileId)
+                        : interaction.UserProfile;
+                }
+            }
+            
             //result.Payload = post.Interactions.ToList();
-            result.Payload = interactions;
+            result.Payload = post.Interactions.ToList();
             return result;
         }
         catch (Exception ex)

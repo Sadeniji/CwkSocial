@@ -20,7 +20,10 @@ public enum ErrorCode
     IdentityUserDoesNotExist = 304,
     IncorrectPassword = 305,
     InExistenceUserProfile = 306,
-    UnAuthorizedAccountRemoval = 307,
+    InteractionCreationNotPossible = 307,
+    InteractionCreatedForUserExist = 308,
+    UnAuthorizedAccountRemoval = 309,
 
-    UnknownError = 999
+    UnknownError = 999,
+    
 }

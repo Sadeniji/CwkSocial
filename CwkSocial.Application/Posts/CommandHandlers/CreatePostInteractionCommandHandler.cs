@@ -23,8 +23,9 @@ public class CreatePostInteractionCommandHandler : IRequestHandler<CreatePostInt
 
         try
         {
-            var post = await _dataContext.Posts.FirstOrDefaultAsync(
-                p => p.PostId == request.PostId && p.UserProfileId == request.UserProfileId, cancellationToken);
+            var post = await _dataContext.Posts
+                .Include(i => i.Interactions)
+                .FirstOrDefaultAsync(p => p.PostId == request.PostId, cancellationToken);
 
             if (post is null)
             {
@@ -32,6 +33,17 @@ public class CreatePostInteractionCommandHandler : IRequestHandler<CreatePostInt
                 return result;
             }
 
+            if (post.Interactions.Any(up => up.UserProfileId == request.UserProfileId))
+            {
+                result.AddError(ErrorCode.InteractionCreatedForUserExist, 
+                    string.Format(PostErrorMessage.InteractionAlreadyCreatedByUser, request.PostId));
+                return result;
+            }
+            if (post.UserProfileId == request.UserProfileId)
+            {
+                result.AddError(ErrorCode.InteractionCreationNotPossible, 
+                    string.Format(PostErrorMessage.InteractionCreationNotAuthorized, request.PostId));
+            }
             var newInteraction = PostInteraction.CreatePostInteraction(request.PostId, request.UserProfileId, request.InteractionType);
             
             post.AddInteraction(newInteraction);
