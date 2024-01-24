@@ -23,6 +23,7 @@ public enum ErrorCode
     InteractionCreationNotPossible = 307,
     InteractionCreatedForUserExist = 308,
     UnAuthorizedAccountRemoval = 309,
+    CommentRemovalNotAuthorized = 310,
 
     UnknownError = 999,
     

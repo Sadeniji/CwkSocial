@@ -128,20 +128,7 @@ namespace CwkSocial.Api.Controllers.V1
         [ValidateModel]
         public async Task<IActionResult> AddCommentToPost(string postId, [FromBody] CreatePostComment comment, CancellationToken cancellationToken)
         {
-            var isValidUser = Guid.TryParse(comment.UserProfileId, out var userProfileId);
-
-            if (!isValidUser)
-            {
-                var apiError = new ErrorResponse
-                {
-                    StatusCode = 400,
-                    StatusPhrase = "Bad Request",
-                    TimeStamp = DateTime.Now,
-                    Errors = { "Provided user profile Id is invalid" }
-                };
-
-                return BadRequest(apiError);
-            }
+            var userProfileId = HttpContext.GetUserProfileIdClaimValue();
             var command = new AddPostCommentCommand
             {
                 PostId = Guid.Parse(postId),
@@ -156,6 +143,43 @@ namespace CwkSocial.Api.Controllers.V1
                 : Ok(_mapper.Map<PostCommentResponse>(response.Payload));
         }
 
+        [HttpDelete]
+        [Route(ApiRoutes.Posts.CommentById)]
+        [ValidateGuid("postId", "commentId")]
+        [ValidateModel]
+        public async Task<IActionResult> RemoveCommentFromPost(string postId, string commentId, CancellationToken cancellationToken)
+        {
+            var userProfileId = HttpContext.GetUserProfileIdClaimValue();
+            var postIdInGuid = Guid.Parse(postId);
+            var commentIdInGuid = Guid.Parse(commentId);
+            var command = new RemoveCommentFromPostCommand(userProfileId, postIdInGuid, commentIdInGuid);
+            var result = await _mediator.Send(command, cancellationToken);
+            
+            return result.IsError
+                ? HandleErrorResponse(result.Errors)
+                : NoContent();
+        }
+        
+        [HttpPatch]
+        [Route(ApiRoutes.Posts.CommentById)]
+        [ValidateGuid("postId", "commentId")]
+        [ValidateModel]
+        public async Task<IActionResult> UpdateCommentText(string postId, string commentId, 
+            UpdatePostComment updatedComment,
+            CancellationToken cancellationToken)
+        {
+            var userProfileId = HttpContext.GetUserProfileIdClaimValue();
+            var postIdInGuid = Guid.Parse(postId);
+            var commentIdInGuid = Guid.Parse(commentId);
+            var command = new UpdatePostCommentCommand(postIdInGuid, commentIdInGuid, userProfileId, updatedComment.Text);
+            var result = await _mediator.Send(command, cancellationToken);
+            
+            return result.IsError
+                ? HandleErrorResponse(result.Errors)
+                : Ok(result.Payload);
+            
+        }
+        
         [HttpGet]
         [Route(ApiRoutes.Posts.PostInteractions)]
         [ValidateGuid("postId")]

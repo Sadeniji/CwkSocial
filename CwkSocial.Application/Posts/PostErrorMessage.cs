@@ -10,4 +10,6 @@ public class PostErrorMessage
     public const string InteractionRemovalNotAuthorized = "Cannot remove interaction as you are not its author - {0}";
     public const string InteractionCreationNotAuthorized = "Cannot create interaction as you are the author of the post - {0}";
     public const string InteractionAlreadyCreatedByUser = "User has created an interaction for this post - {0}";
+    public const string PostCommentNotFound = "Comment not found";
+    public const string CommentRemovalNotAuthorized = "Cannot remove comment from post as you are not its author";
 }

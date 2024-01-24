@@ -74,6 +74,15 @@ public class Post
         _comments.Add(newComment);
     }
 
+    public void UpdatePostComment(Guid postCommentId, string updatedComment)
+    {
+        var comment = _comments.FirstOrDefault(c => c.CommentId == postCommentId);
+
+        if (comment != null && !string.IsNullOrWhiteSpace(updatedComment))
+        {
+            comment.UpdateCommentText(updatedComment);
+        }
+    }
     public void RemoveComment(PostComment commentToRemove)
     {
         _comments.Remove(commentToRemove);
