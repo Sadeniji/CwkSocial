@@ -1,7 +1,9 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using AutoMapper;
 using CwkSocial.Application.Enums;
 using CwkSocial.Application.Identity.Commands;
+using CwkSocial.Application.Identity.Dtos;
 using CwkSocial.Application.Models;
 using CwkSocial.Application.Services;
 using CwkSocial.DAL;
@@ -12,44 +14,50 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CwkSocial.Application.Identity.CommandHandlers
 {
-    public class LoginCommandHandler : IRequestHandler<LoginCommand, OperationResult<string>>
+    public class LoginCommandHandler : IRequestHandler<LoginCommand, OperationResult<IdentityUserProfileDto>>
     {
         private readonly DataContext _dataContext;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IdentityService _identityService;
+        private readonly OperationResult<IdentityUserProfileDto> _result;
+        private readonly IMapper _mapper;
 
-        public LoginCommandHandler(DataContext dataContext, UserManager<IdentityUser> userManager, IdentityService identityService)
+        public LoginCommandHandler(DataContext dataContext, UserManager<IdentityUser> userManager, 
+                                    IdentityService identityService, IMapper mapper)
         {
             _dataContext = dataContext;
             _userManager = userManager;
             _identityService = identityService;
+            _mapper = mapper;
+            _result = new OperationResult<IdentityUserProfileDto>();
         }
 
-        public async Task<OperationResult<string>> Handle(LoginCommand request, CancellationToken cancellationToken)
+        public async Task<OperationResult<IdentityUserProfileDto>> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
-            var result = new OperationResult<string>();
-
             try
             {
-                var identityUser = await ValidateAndGetIdentityUserAsync(result, request);
+                var identityUser = await ValidateAndGetIdentityUserAsync(request);
 
                 if (identityUser is null)
                 {
-                    return result;
+                    return _result;
                 }
                 var userProfile = await _dataContext.UserProfiles.FirstOrDefaultAsync(up => up.IdentityId == identityUser.Id, cancellationToken);
                 if (userProfile is null)
                 {
-                    result.AddError(ErrorCode.InExistenceUserProfile,  $"Login failed. User profile does not exist - {request.UserName}.");
-                    return result;
+                    _result.AddError(ErrorCode.InExistenceUserProfile,  $"Login failed. User profile does not exist - {request.UserName}.");
+                    return _result;
                 }
-                result.Payload = GetJwtString(identityUser, userProfile);
-                return result;
+
+                _result.Payload = _mapper.Map<IdentityUserProfileDto>(userProfile);
+                _result.Payload.Token = GetJwtString(identityUser, userProfile);
+                _result.Payload.UserName = identityUser.UserName;
+                return _result;
             } 
             catch (Exception ex)
             {
-                result.AddError(ErrorCode.UnknownError, ex.Message);
-                return result;
+                _result.AddError(ErrorCode.UnknownError, ex.Message);
+                return _result;
             }
         }
 
@@ -57,6 +65,7 @@ namespace CwkSocial.Application.Identity.CommandHandlers
         {
             var claimsIdentity = new ClaimsIdentity(new Claim[]
             {
+                new Claim(ClaimTypes.NameIdentifier, identityUser.Id),
                 new Claim(JwtRegisteredClaimNames.Sub, identityUser.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, identityUser.Email),
@@ -68,14 +77,13 @@ namespace CwkSocial.Application.Identity.CommandHandlers
             return _identityService.WriteToken(token);
         }
 
-        private async Task<IdentityUser?> ValidateAndGetIdentityUserAsync(OperationResult<string> result, 
-            LoginCommand request)
+        private async Task<IdentityUser?> ValidateAndGetIdentityUserAsync(LoginCommand request)
         {
             var identityUser = await _userManager.FindByEmailAsync(request.UserName);
 
             if (identityUser == null)
             {
-                result.AddError(ErrorCode.IdentityUserDoesNotExist, IdentityErrorMessage.NonExistenceIdentityUser);
+                _result.AddError(ErrorCode.IdentityUserDoesNotExist, IdentityErrorMessage.NonExistenceIdentityUser);
                 return null;
             }
 
@@ -83,7 +91,7 @@ namespace CwkSocial.Application.Identity.CommandHandlers
 
             if (!isAValidPassword)
             {
-                result.AddError(ErrorCode.IncorrectPassword, IdentityErrorMessage.InCorrectPassword);
+                _result.AddError(ErrorCode.IncorrectPassword, IdentityErrorMessage.InCorrectPassword);
                 return null;
             }
 

@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Identity\QueryHandlers\" />
     <Folder Include="UserProfiles\QueryHandlers\" />
   </ItemGroup>
 

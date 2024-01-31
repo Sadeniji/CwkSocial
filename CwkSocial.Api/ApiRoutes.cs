@@ -23,5 +23,6 @@ public class ApiRoutes
         public const string Login = "login";
         public const string Registration = "registration";
         public const string IdentityById = "{identityUserId}";
+        public const string CurrentUser = "currentUser";
     }
 }

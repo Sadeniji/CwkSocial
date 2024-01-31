@@ -4,6 +4,7 @@ using CwkSocial.Api.Contracts.Identity;
 using CwkSocial.Api.Extensions;
 using CwkSocial.Api.Filters;
 using CwkSocial.Application.Identity.Commands;
+using CwkSocial.Application.Identity.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -33,16 +34,15 @@ public class IdentityController : BaseController
         var command = _mapper.Map<RegisterIdentityCommand>(registration);
         var result = await _mediator.Send(command, cancellationToken);
 
-        if (result.IsError)
-        {
-            return HandleErrorResponse(result.Errors);
-        }
+        return result.IsError ? 
+            HandleErrorResponse(result.Errors) : 
+            Ok(_mapper.Map<AuthenticationResult>(result.Payload));
 
-        var authenticationResult = new AuthenticationResult
-        {
-            Token = result.Payload
-        };
-        return Ok(authenticationResult); 
+        // var authenticationResult = new AuthenticationResult
+        // {
+        //     Token = result.Payload
+        // };
+        // return Ok(authenticationResult); 
     }
 
     [HttpPost]
@@ -53,16 +53,19 @@ public class IdentityController : BaseController
         var command = _mapper.Map<LoginCommand>(login);
         var result = await _mediator.Send(command, cancellationToken);
 
-        if (result.IsError)
-        {
-            return HandleErrorResponse(result.Errors);
-        }
-
-        var authenticationResult = new AuthenticationResult
-        {
-            Token = result.Payload
-        };
-        return Ok(authenticationResult);
+        return result.IsError ? 
+            HandleErrorResponse(result.Errors) : 
+            Ok(_mapper.Map<AuthenticationResult>(result.Payload));
+        // if (result.IsError)
+        // {
+        //     return HandleErrorResponse(result.Errors);
+        // }
+        //
+        // var authenticationResult = new AuthenticationResult
+        // {
+        //     Token = result.Payload
+        // };
+        // return Ok(authenticationResult);
     }
 
     [HttpDelete]
@@ -80,6 +83,23 @@ public class IdentityController : BaseController
         
         return response.IsError
             ? HandleErrorResponse(response.Errors)
-            : Ok(response.Payload);
+            : Ok(response.Payload); 
+    }   
+
+    [HttpGet]
+    [Route(ApiRoutes.Identity.CurrentUser)]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> CurrentUser(CancellationToken cancellationToken)
+    {
+        var userProfileId = HttpContext.GetUserProfileIdClaimValue();
+        var claimsPrincipal = HttpContext.User;
+
+        var query = new GetCurrentUserQuery(userProfileId, claimsPrincipal);
+        var result = await _mediator.Send(query, cancellationToken);
+        
+        return result.IsError ? 
+            HandleErrorResponse(result.Errors) : 
+            Ok(_mapper.Map<IdentityUserProfile>(result.Payload));
+        return Ok();
     }
 }

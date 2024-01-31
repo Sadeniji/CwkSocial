@@ -1,6 +1,6 @@
-﻿namespace CwkSocial.Api.Contracts.Identity;
+﻿namespace CwkSocial.Application.Identity.Dtos;
 
-public class AuthenticationResult
+public class IdentityUserProfileDto
 {
     public string UserName { get; set; }
     public string FirstName { get; init; }

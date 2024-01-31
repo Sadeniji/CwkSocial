@@ -1,7 +1,9 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using AutoMapper;
 using CwkSocial.Application.Enums;
 using CwkSocial.Application.Identity.Commands;
+using CwkSocial.Application.Identity.Dtos;
 using CwkSocial.Application.Models;
 using CwkSocial.Application.Services;
 using CwkSocial.DAL;
@@ -13,73 +15,76 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CwkSocial.Application.Identity.CommandHandlers;
 
-public class RegisterIdentityCommandHandler : IRequestHandler<RegisterIdentityCommand, OperationResult<string>>
+public class RegisterIdentityCommandHandler : IRequestHandler<RegisterIdentityCommand, OperationResult<IdentityUserProfileDto>>
 {
     private readonly DataContext _dataContext;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly IdentityService _identityService;
+    private OperationResult<IdentityUserProfileDto> _result = new OperationResult<IdentityUserProfileDto>();
+    private readonly IMapper _mapper;
 
-    public RegisterIdentityCommandHandler(DataContext dataContext, UserManager<IdentityUser> userManager, IdentityService identityService)
+    public RegisterIdentityCommandHandler(DataContext dataContext, UserManager<IdentityUser> userManager, 
+                                          IdentityService identityService, IMapper mapper)
     {
         _dataContext = dataContext;
         _userManager = userManager;
         _identityService = identityService;
+        _mapper = mapper;
     }
 
-    public async Task<OperationResult<string>> Handle(RegisterIdentityCommand request, CancellationToken cancellationToken)
+    public async Task<OperationResult<IdentityUserProfileDto>> Handle(RegisterIdentityCommand request, CancellationToken cancellationToken)
     {
-        var result = new OperationResult<string>();
-
         try
         {
-            var validateIdentityUserExist = await ValidateIdentityUserExistence(result, request.UserName);
+            var validateIdentityUserExist = await ValidateIdentityUserExistence(request.UserName);
 
             if (!validateIdentityUserExist)
             {
-                return result;
+                return _result;
             }
             
             // creating transaction
             await using var transaction = await _dataContext.Database.BeginTransactionAsync(cancellationToken);
 
-            var identity = await CreateIdentityUserAsync(result, request, transaction, cancellationToken);
+            var identity = await CreateIdentityUserAsync(request, transaction, cancellationToken);
 
             if (identity == null)
             {
-                return result;
+                return _result;
             }
 
-            var profile = await CreateUserProfileAsync(result, request, transaction, identity, cancellationToken);
+            var profile = await CreateUserProfileAsync(request, transaction, identity, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            
-            result.Payload = GetJwtString(identity, profile);;
-            return result;
+            _result.Payload = _mapper.Map<IdentityUserProfileDto>(profile);
+            _result.Payload.Token = GetJwtString(identity, profile);
+            _result.Payload.UserName = identity.UserName;
+            return _result;
         }
         catch (UserProfileNotValidException ex)
         {
-            ex.ValidationErrors.ForEach(e => result.AddError(ErrorCode.ValidationError, e));
+            ex.ValidationErrors.ForEach(e => _result.AddError(ErrorCode.ValidationError, e));
         }
         catch (Exception ex)
         {
-            result.AddError(ErrorCode.UnknownError, ex.Message);
+            _result.AddError(ErrorCode.UnknownError, ex.Message);
         }
 
-        return result;
+        return _result;
     }
 
-    private async Task<bool> ValidateIdentityUserExistence(OperationResult<string> result, string userName)
+    private async Task<bool> ValidateIdentityUserExistence(string userName)
     {
         var existingIdentity = await _userManager.FindByEmailAsync(userName);
 
         if (existingIdentity != null)
         {
-            result.AddError(ErrorCode.IdentityUserAlreadyExists, IdentityErrorMessage.IdentityUserAlreadyExist);
+            _result.AddError(ErrorCode.IdentityUserAlreadyExists, IdentityErrorMessage.IdentityUserAlreadyExist);
             return false;
         }
         return true;
     }
 
-    private async Task<IdentityUser?> CreateIdentityUserAsync(OperationResult<string> result, RegisterIdentityCommand request, 
+    private async Task<IdentityUser?> CreateIdentityUserAsync(RegisterIdentityCommand request, 
         IDbContextTransaction transaction, CancellationToken cancellationToken)
     {
         var identity = new IdentityUser
@@ -96,14 +101,14 @@ public class RegisterIdentityCommandHandler : IRequestHandler<RegisterIdentityCo
             
             foreach (var identityError in createdIdentity.Errors)
             {
-                result.AddError(ErrorCode.IdentityCreationFailed, identityError.Description);
+                _result.AddError(ErrorCode.IdentityCreationFailed, identityError.Description);
             }
             return null;
         }
         return identity;
     }
 
-    private async Task<UserProfile> CreateUserProfileAsync(OperationResult<string> result, RegisterIdentityCommand request,
+    private async Task<UserProfile> CreateUserProfileAsync(RegisterIdentityCommand request,
         IDbContextTransaction transaction, IdentityUser identity, CancellationToken cancellationToken)
     {
         try
